@@ -3,7 +3,7 @@ services:
   stats-server:
     build: stats/server
     image: dock_stats-server
-    container_name: ewm-stats-server
+    container_name: stats-server
     ports:
       - "9090:9090"
     depends_on:
@@ -16,7 +16,7 @@ services:
 
   stats-db-postgres:
     image: postgres:14-alpine
-    container_name: ewm-stats-db
+    container_name: stats-db-postgres
     ports:
       - "6541:5432"
     # В финале ароли и имена cпрячу в переменные окружения
@@ -27,10 +27,7 @@ services:
 
   ewm-service:
     build: main-service
-    image: dock_main-service
-    container_name: ewm-main-service
+    image: dock_ewm-service
+    container_name: ewm-service
     ports:
       - "8080:8080"
-
-  ewm-db-postgres:
-    image: postgres:14-alpine
