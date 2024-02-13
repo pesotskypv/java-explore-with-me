@@ -10,6 +10,9 @@
     </parent>
 
     <artifactId>stats-dto</artifactId>
+    <name>dto</name>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
 
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
