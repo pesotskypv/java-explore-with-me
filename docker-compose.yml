@@ -10,7 +10,7 @@ services:
       - stats-db-postgres
     # В финале ароли и имена cпрячу в переменные окружения
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://stats-db:5432/ewm-stats
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://stats-db-postgres:5432/ewm-stats
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root
 
