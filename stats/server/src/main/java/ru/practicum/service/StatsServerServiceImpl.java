@@ -34,9 +34,9 @@ public class StatsServerServiceImpl implements StatsServerService {
     public List<ViewStatsDto> findStats(LocalDateTime start, LocalDateTime end, String[] uris, Boolean isUnique) {
         List<ViewStats> viewStats;
 
-        if (start.isAfter(end))
+        if (start.isAfter(end)) {
             throw new EntityValidationException("Дата начала периода не может быть позже даты конца периода.");
-
+        }
         if (isUnique) {
             if (uris != null) {
                 viewStats = statsServerRepository.findStatsByUniqueIpAndUris(start, end, uris);
