@@ -9,7 +9,17 @@ import org.springframework.stereotype.Service;
 import ru.practicum.category.dao.CategoryRepository;
 import ru.practicum.category.model.Category;
 import ru.practicum.event.dao.EventRepository;
-import ru.practicum.event.dto.*;
+import ru.practicum.event.dto.EventFullDto;
+import ru.practicum.event.dto.EventRequestStatus;
+import ru.practicum.event.dto.EventRequestStatusUpdateRequest;
+import ru.practicum.event.dto.EventRequestStatusUpdateResult;
+import ru.practicum.event.dto.EventShortDto;
+import ru.practicum.event.dto.NewEventDto;
+import ru.practicum.event.dto.StateAction;
+import ru.practicum.event.dto.StateActionAdmin;
+import ru.practicum.event.dto.UpdateEvent;
+import ru.practicum.event.dto.UpdateEventAdminRequest;
+import ru.practicum.event.dto.UpdateEventUserRequest;
 import ru.practicum.event.mapper.EventMapper;
 import ru.practicum.event.model.Event;
 import ru.practicum.event.model.EventState;
@@ -53,8 +63,9 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public List<EventShortDto> findAllEventsByCurrentUser(Long userId, PageRequest of) {
-        if (!userRepository.existsById(userId))
+        if (!userRepository.existsById(userId)) {
             throw new EntityNotFoundException("Пользователь не найден или недоступен");
+        }
 
         List<EventShortDto> eventShortDtos = eventRepository.findByInitiatorId(userId, of).stream()
                 .map(eventMapper::toEventShortDto).collect(Collectors.toList());
@@ -100,10 +111,13 @@ public class EventServiceImpl implements EventService {
     public EventFullDto getEventByCurrentUser(Long userId, Long eventId) {
         EventFullDto eventFullDto = eventMapper.toEventFullDto(eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Событие не найдено или недоступно.")));
-        if (!eventFullDto.getInitiator().getId().equals(userId))
-            throw new EntityNotFoundException("Текущий пользователь не является автором события.");
 
-        eventFullDto.setConfirmedRequests(requestRepository.countConfirmedRequestsByEventId(eventId));
+        if (!eventFullDto.getInitiator().getId().equals(userId)) {
+            throw new EntityNotFoundException("Текущий пользователь не является автором события.");
+        }
+
+        eventFullDto.setConfirmedRequests(requestRepository.countByEventIdAndStatus(eventId,
+                ParticipationStatus.CONFIRMED));
         eventFullDto.setViews(getEventViews(eventId));
 
         log.info("Возвращено событие: {}", eventFullDto);
@@ -114,11 +128,14 @@ public class EventServiceImpl implements EventService {
     public EventFullDto changeEventByCurrentUser(Long userId, Long eventId, UpdateEventUserRequest request) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Событие не найдено или недоступно."));
-        if (!event.getInitiator().getId().equals(userId))
+
+        if (!event.getInitiator().getId().equals(userId)) {
             throw new EntityNotFoundException("Текущий пользователь не является автором события.");
-        if (event.getState().equals(EventState.PUBLISHED))
+        }
+        if (event.getState().equals(EventState.PUBLISHED)) {
             throw new EntityConflictException("Изменить можно только отменённые события или события в состоянии" +
                     "ожидания модерации.");
+        }
 
         LocalDateTime eventDate = request.getEventDate();
         StateAction state = request.getStateAction();
@@ -127,13 +144,15 @@ public class EventServiceImpl implements EventService {
             eventDateValidation(eventDate);
             event.setEventDate(eventDate);
         }
-        if (state != null)
+        if (state != null) {
             event.setState(state.equals(StateAction.SEND_TO_REVIEW) ? EventState.PENDING : EventState.CANCELED);
+        }
 
         EventFullDto eventFullDto = eventMapper.toEventFullDto(eventRepository
                 .save(eventValidateAndSetFields(event, eventMapper.updateEventUserRequestToUpdateEvent(request))));
 
-        eventFullDto.setConfirmedRequests(requestRepository.countConfirmedRequestsByEventId(eventId));
+        eventFullDto.setConfirmedRequests(requestRepository.countByEventIdAndStatus(eventId,
+                ParticipationStatus.CONFIRMED));
         eventFullDto.setViews(getEventViews(eventId));
 
         log.info("Пользователем изменено событие: {}", eventFullDto);
@@ -144,8 +163,10 @@ public class EventServiceImpl implements EventService {
     public List<ParticipationRequestDto> findRequests(Long userId, Long eventId) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Событие не найдено или недоступно."));
-        if (!event.getInitiator().getId().equals(userId))
+
+        if (!event.getInitiator().getId().equals(userId)) {
             throw new EntityNotFoundException("Текущий пользователь не является автором события.");
+        }
 
         List<ParticipationRequestDto> participationRequestDtos = requestRepository.findByEventId(eventId).stream()
                 .map(requestMapper::toParticipationRequestDto).collect(Collectors.toList());
@@ -159,24 +180,28 @@ public class EventServiceImpl implements EventService {
                                                               EventRequestStatusUpdateRequest request) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Событие не найдено или недоступно."));
-        if (!event.getInitiator().getId().equals(userId))
-            throw new EntityNotFoundException("Текущий пользователь не является автором события.");
 
-        AtomicReference<Long> countRequests =
-                new AtomicReference<>(requestRepository.countConfirmedRequestsByEventId(eventId));
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new EntityNotFoundException("Текущий пользователь не является автором события.");
+        }
+
+        AtomicReference<Long> countRequests = new AtomicReference<>(requestRepository.countByEventIdAndStatus(eventId,
+                ParticipationStatus.CONFIRMED));
         Integer participantLimit = event.getParticipantLimit();
         boolean eventRequestStatus = request.getStatus().equals(EventRequestStatus.CONFIRMED);
 
         if (eventRequestStatus && participantLimit != null && participantLimit != 0
-                && event.getRequestModeration().equals(true) && countRequests.get() >= participantLimit)
+                && event.getRequestModeration().equals(true) && countRequests.get() >= participantLimit) {
             throw new EntityConflictException("Достигнут лимит по заявкам на данное событие.");
+        }
 
         List<ParticipationRequest> requests = requestRepository.findAllById(Arrays.asList(request.getRequestIds()));
 
         requests.forEach(r -> {
-            if (!r.getStatus().equals(ParticipationStatus.PENDING))
+            if (!r.getStatus().equals(ParticipationStatus.PENDING)) {
                 throw new EntityConflictException("Статус можно изменить только у заявок, находящихся в состоянии " +
                         "ожидания");
+            }
         });
 
         EventRequestStatusUpdateResult result = EventRequestStatusUpdateResult.builder().build();
@@ -281,7 +306,8 @@ public class EventServiceImpl implements EventService {
         EventFullDto eventFullDto = eventMapper.toEventFullDto(eventRepository
                 .save(eventValidateAndSetFields(event, eventMapper.updateEventAdminRequestToUpdateEvent(request))));
 
-        eventFullDto.setConfirmedRequests(requestRepository.countConfirmedRequestsByEventId(eventId));
+        eventFullDto.setConfirmedRequests(requestRepository.countByEventIdAndStatus(eventId,
+                ParticipationStatus.CONFIRMED));
         eventFullDto.setViews(getEventViews(eventId));
 
         log.info("Изменено администратором событие: {}", eventFullDto);
@@ -310,8 +336,9 @@ public class EventServiceImpl implements EventService {
             builder.and(byPaid);
         }
         if (Objects.nonNull(rangeStart) && Objects.nonNull(rangeEnd)) {
-            if (rangeStart.isAfter(rangeEnd))
+            if (rangeStart.isAfter(rangeEnd)) {
                 throw new EntityValidationException("Дата начала периода не может быть позже даты конца периода.");
+            }
             byDate = QEvent.event.eventDate.between(rangeStart, rangeEnd);
         } else {
             byDate = QEvent.event.eventDate.after(LocalDateTime.now());
@@ -329,12 +356,14 @@ public class EventServiceImpl implements EventService {
                 .collect(Collectors.toList());
 
         if (sort != null) {
-            if (sort.equals("EVENT_DATE"))
+            if (sort.equals("EVENT_DATE")) {
                 eventShortDtos = eventShortDtos.stream().sorted(Comparator.comparing(EventShortDto::getEventDate))
                         .collect(Collectors.toList());
-            if (sort.equals("VIEWS"))
+            }
+            if (sort.equals("VIEWS")) {
                 eventShortDtos = eventShortDtos.stream().sorted(Comparator.comparing(EventShortDto::getViews))
                         .collect(Collectors.toList());
+            }
         }
         addStat(request);
 
@@ -346,10 +375,13 @@ public class EventServiceImpl implements EventService {
     public EventFullDto getEventById(Long eventId, HttpServletRequest request) {
         EventFullDto eventFullDto = eventMapper.toEventFullDto(eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Событие не найдено или недоступно.")));
-        if (!eventFullDto.getState().equals(EventState.PUBLISHED))
-            throw new EntityNotFoundException("Событие не опубликовано.");
 
-        eventFullDto.setConfirmedRequests(requestRepository.countConfirmedRequestsByEventId(eventId));
+        if (!eventFullDto.getState().equals(EventState.PUBLISHED)) {
+            throw new EntityNotFoundException("Событие не опубликовано.");
+        }
+
+        eventFullDto.setConfirmedRequests(requestRepository.countByEventIdAndStatus(eventId,
+                ParticipationStatus.CONFIRMED));
         eventFullDto.setViews(getEventViews(eventId));
         addStat(request);
 
@@ -358,9 +390,10 @@ public class EventServiceImpl implements EventService {
     }
 
     private void eventDateValidation(LocalDateTime dateTime) {
-        if (dateTime.isBefore(LocalDateTime.now().plusHours(2)))
+        if (dateTime.isBefore(LocalDateTime.now().plusHours(2))) {
             throw new EntityValidationException("Дата и время на которые намечено событие не может быть раньше, " +
                     "чем через два часа от текущего момента.");
+        }
     }
 
     private Event eventValidateAndSetFields(Event event, UpdateEvent updateEvent) {
@@ -378,23 +411,31 @@ public class EventServiceImpl implements EventService {
         Boolean requestModeration = updateEvent.getRequestModeration();
         String title = updateEvent.getTitle();
 
-        if (annotation != null) event.setAnnotation(annotation);
-        if (description != null) event.setDescription(description);
-        if (paid != null) event.setPaid(paid);
-        if (participantLimit != null) event.setParticipantLimit(participantLimit);
-        if (requestModeration != null) event.setRequestModeration(requestModeration);
-        if (title != null) event.setTitle(title);
+        if (annotation != null) {
+            event.setAnnotation(annotation);
+        }
+        if (description != null) {
+            event.setDescription(description);
+        }
+        if (paid != null) {
+            event.setPaid(paid);
+        }
+        if (participantLimit != null) {
+            event.setParticipantLimit(participantLimit);
+        }
+        if (requestModeration != null) {
+            event.setRequestModeration(requestModeration);
+        }
+        if (title != null) {
+            event.setTitle(title);
+        }
 
         return event;
     }
 
     private Long getEventViews(Long eventId) {
-        List<ViewStatsDto> viewStatsDtos = statsClientService.findStats(
-                LocalDateTime.now().minusYears(1),
-                LocalDateTime.now().plusDays(1),
-                new String[]{"/events/" + eventId},
-                true
-        );
+        List<ViewStatsDto> viewStatsDtos = statsClientService.findStats(LocalDateTime.now().minusYears(1),
+                LocalDateTime.now().plusDays(1), new String[]{"/events/" + eventId},true);
         Long countViewStats = (long) viewStatsDtos.size();
 
         log.info("Возвращено количество просмотров из сервиса статистики: {}", countViewStats);

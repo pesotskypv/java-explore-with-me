@@ -31,8 +31,9 @@ public class RequestServiceImpl implements RequestService {
 
     @Override
     public List<ParticipationRequestDto> getRequests(Long userId) {
-        if (!userRepository.existsById(userId))
+        if (!userRepository.existsById(userId)) {
             throw new EntityNotFoundException("Пользователь не найден или недоступен.");
+        }
         List<ParticipationRequestDto> participationRequestDtos = requestRepository.findByRequesterId(userId)
                 .stream().map(requestMapper::toParticipationRequestDto).collect(Collectors.toList());
 
@@ -47,16 +48,20 @@ public class RequestServiceImpl implements RequestService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Событие не найдено или недоступно."));
         Integer limit = event.getParticipantLimit();
-        Long countRequests = requestRepository.countConfirmedRequestsByEventId(eventId);
+        Long countRequests = requestRepository.countByEventIdAndStatus(eventId, ParticipationStatus.CONFIRMED);
 
-        if (requestRepository.existsByRequesterIdAndEventId(userId, eventId))
+        if (requestRepository.existsByRequesterIdAndEventId(userId, eventId)) {
             throw new EntityConflictException("Нельзя добавить повторный запрос на участие в событии.");
-        if (event.getInitiator().equals(user))
+        }
+        if (event.getInitiator().equals(user)) {
             throw new EntityConflictException("Инициатор события не может добавить запрос на участие в своём событии.");
-        if (!event.getState().equals(EventState.PUBLISHED))
+        }
+        if (!event.getState().equals(EventState.PUBLISHED)) {
             throw new EntityConflictException("Нельзя участвовать в неопубликованном событии.");
-        if (limit != null && limit != 0 && countRequests >= limit)
+        }
+        if (limit != null && limit != 0 && countRequests >= limit) {
             throw new EntityConflictException("У события достигнут лимит запросов на участие в событии.");
+        }
 
         ParticipationStatus status = event.getRequestModeration()
                 ? ParticipationStatus.PENDING : ParticipationStatus.CONFIRMED;
@@ -77,8 +82,10 @@ public class RequestServiceImpl implements RequestService {
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден или недоступен."));
         ParticipationRequest participationRequest = requestRepository.findById(requestId)
                 .orElseThrow(() -> new EntityNotFoundException("Запрос на участие не найден или недоступен."));
-        if (!participationRequest.getRequester().equals(user))
+
+        if (!participationRequest.getRequester().equals(user)) {
             throw new EntityNotFoundException("Текущий пользователь не является автором запрос на участие.");
+        }
 
         participationRequest.setStatus(ParticipationStatus.CANCELED);
 

@@ -30,20 +30,25 @@ public class CompilationServiceImpl implements CompilationService {
 
     @Override
     public CompilationDto createCompilation(NewCompilationDto newCompilationDto) {
-        if (compilationRepository.existsByTitle(newCompilationDto.getTitle()))
+        if (compilationRepository.existsByTitle(newCompilationDto.getTitle())) {
             throw new EntityValidationException("Имя категории должно быть уникальным.");
+        }
 
         Compilation savedCompilation = compilationMapper.toCompilation(newCompilationDto);
         List<Long> eventIds = newCompilationDto.getEvents();
         Boolean pinned = newCompilationDto.getPinned();
 
-        if (eventIds != null && !eventIds.isEmpty()) savedCompilation.setEvents(eventRepository.findAllById(eventIds));
+        if (eventIds != null && !eventIds.isEmpty()) {
+            savedCompilation.setEvents(eventRepository.findAllById(eventIds));
+        }
         savedCompilation.setPinned(pinned != null ? pinned : false);
 
         CompilationDto compilationDto = compilationMapper.toCompilationDto(compilationRepository
                 .save(savedCompilation));
 
-        if (compilationDto.getEvents() == null) compilationDto.setEvents(Collections.emptyList());
+        if (compilationDto.getEvents() == null) {
+            compilationDto.setEvents(Collections.emptyList());
+        }
 
         log.info("Добавлена новая категория: {}", compilationDto);
         return compilationDto;
@@ -55,8 +60,9 @@ public class CompilationServiceImpl implements CompilationService {
                 .orElseThrow(() -> new EntityNotFoundException("Категория не найдена или недоступена."));
         List<Event> events = compilation.getEvents();
 
-        if (events != null && !events.isEmpty())
+        if (events != null && !events.isEmpty()) {
             throw new EntityConflictException("Существуют события, связанные с категорией.");
+        }
 
         compilationRepository.deleteById(compId);
         log.info("Удалена категория с id: {}", compId);
@@ -71,12 +77,17 @@ public class CompilationServiceImpl implements CompilationService {
         String title = updateCompilationRequest.getTitle();
 
         if (title != null) {
-            if (compilationRepository.existsByTitle(title) && !compilation.getTitle().equals(title))
+            if (compilationRepository.existsByTitle(title) && !compilation.getTitle().equals(title)) {
                 throw new EntityValidationException("Имя категории должно быть уникальным.");
+            }
             compilation.setTitle(title);
         }
-        if (events != null && !events.isEmpty()) compilation.setEvents(eventRepository.findAllById(events));
-        if (pinned != null) compilation.setPinned(pinned);
+        if (events != null && !events.isEmpty()) {
+            compilation.setEvents(eventRepository.findAllById(events));
+        }
+        if (pinned != null) {
+            compilation.setPinned(pinned);
+        }
 
         CompilationDto compilationDto = compilationMapper.toCompilationDto(compilationRepository.save(compilation));
 

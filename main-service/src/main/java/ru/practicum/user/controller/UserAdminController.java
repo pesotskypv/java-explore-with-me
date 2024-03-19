@@ -24,11 +24,9 @@ public class UserAdminController {
     private final UserService userService;
 
     @GetMapping
-    public List<UserDto> findAllUsers(@RequestParam(name = "ids", required = false) Long[] ids,
-                                      @RequestParam(required = false, name = "from", defaultValue = "0")
-                                      @PositiveOrZero int from,
-                                      @RequestParam(required = false, name = "size", defaultValue = "10")
-                                      @Positive int size) {
+    public List<UserDto> findAllUsers(@RequestParam(required = false) Long[] ids,
+                                      @RequestParam(required = false, defaultValue = "0") @PositiveOrZero int from,
+                                      @RequestParam(required = false, defaultValue = "10") @Positive int size) {
         log.info("Получен GET-запрос /admin/users?ids={}&from={}&size={}", ids, from, size);
         return userService.findAllUsers(ids, PageRequest.of(from / size, size));
     }
@@ -42,7 +40,7 @@ public class UserAdminController {
 
     @DeleteMapping("/{userId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteUser(@PathVariable(name = "userId") @PositiveOrZero Long userId) {
+    public void deleteUser(@PathVariable @PositiveOrZero Long userId) {
         log.info("Получен DELETE-запрос /admin/users/{}", userId);
         userService.deleteUser(userId);
     }

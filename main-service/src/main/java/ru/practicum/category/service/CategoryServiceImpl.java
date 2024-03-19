@@ -4,12 +4,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import ru.practicum.category.model.CategoryEvents;
 import ru.practicum.category.dao.CategoryRepository;
 import ru.practicum.category.dto.CategoryDto;
 import ru.practicum.category.dto.NewCategoryDto;
 import ru.practicum.category.mapper.CategoryMapper;
 import ru.practicum.category.model.Category;
-import ru.practicum.event.dao.EventRepository;
 import ru.practicum.exception.EntityConflictException;
 import ru.practicum.exception.EntityNotFoundException;
 
@@ -23,14 +23,15 @@ import java.util.stream.Collectors;
 public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
-    private final EventRepository eventRepository;
 
     @Override
     public CategoryDto createCategory(NewCategoryDto newCategoryDto) {
         String name = newCategoryDto.getName();
 
-        if (Objects.nonNull(categoryRepository.findByName(name)))
+        if (Objects.nonNull(categoryRepository.findByName(name))) {
             throw new EntityConflictException("Нарушение целостности данных");
+        }
+
         CategoryDto categoryDto = categoryMapper.toCategoryDto(categoryRepository
                 .save(categoryMapper.toCategory(newCategoryDto)));
         log.info("Добавлена категория: {}", categoryDto);
@@ -40,12 +41,14 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public void deleteCategory(Long catId) {
-        Category foundCategory = categoryRepository.findById(catId)
-                .orElseThrow(() -> new EntityNotFoundException("Категория не найдена или недоступна"));
+        CategoryEvents categoryEvents = categoryRepository.getCategoryNumbOfEvents(catId);
 
-        if (eventRepository.existsByCategory(foundCategory)) {
+        if (categoryEvents == null) {
+            throw new EntityNotFoundException("Категория не найдена или недоступна");
+        } else if (categoryEvents.getNumbOfEvents() != 0) {
             throw new EntityConflictException("Существуют события, связанные с категорией");
         }
+
         categoryRepository.deleteById(catId);
         log.info("Удалена категория с id: {}", catId);
     }
@@ -57,8 +60,10 @@ public class CategoryServiceImpl implements CategoryService {
                 .orElseThrow(() -> new EntityNotFoundException("Категория не найдена или недоступна"));
         Category foundCategory = categoryRepository.findByName(name);
 
-        if (foundCategory != null && !foundCategory.getId().equals(catId))
+        if (foundCategory != null && !foundCategory.getId().equals(catId)) {
             throw new EntityConflictException("Нарушение целостности данных");
+        }
+
         savedCategory.setName(name);
 
         CategoryDto categoryDto = categoryMapper.toCategoryDto(categoryRepository.save(savedCategory));

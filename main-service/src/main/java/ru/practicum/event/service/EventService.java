@@ -1,7 +1,13 @@
 package ru.practicum.event.service;
 
 import org.springframework.data.domain.PageRequest;
-import ru.practicum.event.dto.*;
+import ru.practicum.event.dto.EventFullDto;
+import ru.practicum.event.dto.EventRequestStatusUpdateRequest;
+import ru.practicum.event.dto.EventRequestStatusUpdateResult;
+import ru.practicum.event.dto.EventShortDto;
+import ru.practicum.event.dto.NewEventDto;
+import ru.practicum.event.dto.UpdateEventAdminRequest;
+import ru.practicum.event.dto.UpdateEventUserRequest;
 import ru.practicum.request.dto.ParticipationRequestDto;
 
 import javax.servlet.http.HttpServletRequest;

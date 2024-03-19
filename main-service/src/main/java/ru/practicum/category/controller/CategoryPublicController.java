@@ -21,16 +21,15 @@ public class CategoryPublicController {
     private final CategoryService categoryService;
 
     @GetMapping
-    public List<CategoryDto> findAllCategories(@RequestParam(required = false, name = "from", defaultValue = "0")
-                                              @PositiveOrZero int from,
-                                              @RequestParam(required = false, name = "size", defaultValue = "10")
-                                              @Positive int size) {
+    public List<CategoryDto> findAllCategories(@RequestParam(required = false, defaultValue = "0")
+                                                   @PositiveOrZero int from,
+                                              @RequestParam(required = false, defaultValue = "10") @Positive int size) {
         log.info("Получен GET-запрос /categories?from={}&size={}", from, size);
         return categoryService.findAllCategories(PageRequest.of(from / size, size));
     }
 
     @GetMapping("/{catId}")
-    public CategoryDto getCategoryById(@PathVariable(name = "catId") @PositiveOrZero Long catId) {
+    public CategoryDto getCategoryById(@PathVariable @PositiveOrZero Long catId) {
         log.info("Получен GET-запрос /categories/{}", catId);
         return categoryService.getCategoryById(catId);
     }

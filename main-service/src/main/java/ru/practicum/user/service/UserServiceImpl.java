@@ -27,14 +27,14 @@ public class UserServiceImpl implements UserService {
                 .map(userMapper::toUserDto).collect(Collectors.toList());
 
         log.info("Возвращён список пользователей: {}", userDtos);
-
         return userDtos;
     }
 
     @Override
     public UserDto createUser(NewUserRequest newUserRequest) {
-        if (userRepository.findByEmail(newUserRequest.getEmail()) != null)
+        if (userRepository.findByEmail(newUserRequest.getEmail()) != null) {
             throw new EntityConflictException("Нарушение целостности данных");
+        }
 
         UserDto userDto = userMapper.toUserDto(userRepository.save(userMapper.toUser(newUserRequest)));
 
@@ -44,8 +44,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(Long userId) {
-        if (!userRepository.existsById(userId))
+        if (!userRepository.existsById(userId)) {
             throw new EntityNotFoundException("Пользователь не найден или недоступен");
+        }
         userRepository.deleteById(userId);
         log.info("Удалён пользователь с id: {}", userId);
     }
