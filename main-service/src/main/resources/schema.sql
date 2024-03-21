@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS users (
     id BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL,
     name VARCHAR(250) NOT NULL,
     email VARCHAR(254) NOT NULL,
-    subscription_ban BOOLEAN NOT NULL,
+    subscription_banned BOOLEAN NOT NULL,
     CONSTRAINT pk_user PRIMARY KEY (id),
     CONSTRAINT uq_user_email UNIQUE (email)
 );

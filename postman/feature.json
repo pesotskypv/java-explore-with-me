@@ -351,7 +351,7 @@
 							"        author = await api.addUser(rnd.getUser());",
 							"        pm.collectionVariables.set(\"uid\", user.id)",
 							"        pm.collectionVariables.set(\"aid\", author.id)",
-							"        author.subscriptionBan = true;",
+							"        author.subscriptionBanned = true;",
 							"        const updAuthor = await api.updateUser(author.id, author);",
 							"    } catch(err) {",
 							"        console.error(\"Ошибка при подготовке тестовых данных.\", err);",

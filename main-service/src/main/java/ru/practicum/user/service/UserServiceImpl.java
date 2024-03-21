@@ -40,8 +40,8 @@ public class UserServiceImpl implements UserService {
             throw new EntityConflictException("Нарушение целостности данных.");
         }
         User user = userMapper.toUser(newUserRequest);
-        if (user.getSubscriptionBan() == null) {
-            user.setSubscriptionBan(false);
+        if (user.getSubscriptionBanned() == null) {
+            user.setSubscriptionBanned(false);
         }
         UserDto userDto = userMapper.toUserDto(userRepository.save(user));
 
@@ -71,7 +71,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден или недоступен."));
         String name = userDto.getName();
         String email = userDto.getEmail();
-        Boolean subscriptionBan = userDto.getSubscriptionBan();
+        Boolean subscriptionBanned = userDto.getSubscriptionBanned();
 
         if (name != null) {
             user.setName(name);
@@ -79,8 +79,8 @@ public class UserServiceImpl implements UserService {
         if (email != null) {
             user.setEmail(email);
         }
-        if (subscriptionBan != null) {
-            user.setSubscriptionBan(subscriptionBan);
+        if (subscriptionBanned != null) {
+            user.setSubscriptionBanned(subscriptionBanned);
         }
 
         UserDto savedUser = userMapper.toUserDto(userRepository.save(user));

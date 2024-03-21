@@ -39,7 +39,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         if (subscriptionRepository.existsByAuthorIdAndSubscriberId(authorId, subscriberId)) {
             throw new EntityConflictException("Пользователь уже подписан на автора.");
         }
-        if (author.getSubscriptionBan()) {
+        if (author.getSubscriptionBanned()) {
             throw new EntityNotFoundException("Пользователь запретил подписку на себя.");
         }
 
