@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS users (
     id BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL,
     name VARCHAR(250) NOT NULL,
     email VARCHAR(254) NOT NULL,
+    subscription_ban BOOLEAN NOT NULL,
     CONSTRAINT pk_user PRIMARY KEY (id),
     CONSTRAINT uq_user_email UNIQUE (email)
 );
@@ -59,4 +60,16 @@ CREATE TABLE IF NOT EXISTS compilations_events (
     CONSTRAINT pk_compilations_events PRIMARY KEY (compilation_id, event_id),
     CONSTRAINT fk_compilations_events FOREIGN KEY (compilation_id) REFERENCES compilations (id),
     CONSTRAINT fk_events_compilations FOREIGN KEY (event_id) REFERENCES events (id)
+);
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL,
+  author_id BIGINT NOT NULL,
+  subscriber_id BIGINT NOT NULL,
+  created TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+  CONSTRAINT pk_subscriptions PRIMARY KEY (id),
+  CONSTRAINT uq_subscriptions UNIQUE (author_id, subscriber_id),
+  CONSTRAINT fk_subscriptions_author_users FOREIGN KEY (author_id) REFERENCES users (id),
+  CONSTRAINT fk_subscriptions_subscriber_users FOREIGN KEY (subscriber_id) REFERENCES users (id),
+  CONSTRAINT chk_author_subscriber_different CHECK (author_id != subscriber_id)
 );

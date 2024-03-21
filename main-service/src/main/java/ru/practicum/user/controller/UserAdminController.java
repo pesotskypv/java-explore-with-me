@@ -44,4 +44,11 @@ public class UserAdminController {
         log.info("Получен DELETE-запрос /admin/users/{}", userId);
         userService.deleteUser(userId);
     }
+
+    @PatchMapping("/{userId}")
+    public UserDto updateUser(@PathVariable @PositiveOrZero Long userId, @RequestBody UserDto userDto) {
+        log.info("Получен PATCH-запрос /users/{} с телом={}", userId, userDto);
+
+        return userService.updateUser(userId, userDto);
+    }
 }
