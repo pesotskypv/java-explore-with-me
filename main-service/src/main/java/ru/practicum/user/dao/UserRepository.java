@@ -8,7 +8,7 @@ import ru.practicum.user.model.User;
 import java.util.Collection;
 
 public interface UserRepository extends JpaRepository<User, Long> {
-    User findByEmail(String email);
+    Boolean existsByEmail(String email);
 
     Page<User> findByIdIn(Collection<Long> ids, Pageable pageable);
 }

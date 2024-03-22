@@ -6,10 +6,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import ru.practicum.exception.EntityConflictException;
 import ru.practicum.exception.EntityNotFoundException;
+import ru.practicum.subscription.dao.SubscriptionRepository;
 import ru.practicum.user.dao.UserRepository;
 import ru.practicum.user.dto.NewUserRequest;
 import ru.practicum.user.dto.UserDto;
 import ru.practicum.user.mapper.UserMapper;
+import ru.practicum.user.model.User;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,6 +22,7 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final SubscriptionRepository subscriptionRepository;
 
     @Override
     public List<UserDto> findAllUsers(Long[] ids, PageRequest of) {
@@ -32,11 +36,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto createUser(NewUserRequest newUserRequest) {
-        if (userRepository.findByEmail(newUserRequest.getEmail()) != null) {
-            throw new EntityConflictException("Нарушение целостности данных");
+        if (userRepository.existsByEmail(newUserRequest.getEmail())) {
+            throw new EntityConflictException("Нарушение целостности данных.");
         }
-
-        UserDto userDto = userMapper.toUserDto(userRepository.save(userMapper.toUser(newUserRequest)));
+        User user = userMapper.toUser(newUserRequest);
+        if (user.getSubscriptionBanned() == null) {
+            user.setSubscriptionBanned(false);
+        }
+        UserDto userDto = userMapper.toUserDto(userRepository.save(user));
 
         log.info("Сохранён пользователь: {}", userDto);
         return userDto;
@@ -45,9 +52,40 @@ public class UserServiceImpl implements UserService {
     @Override
     public void deleteUser(Long userId) {
         if (!userRepository.existsById(userId)) {
-            throw new EntityNotFoundException("Пользователь не найден или недоступен");
+            throw new EntityNotFoundException("Пользователь не найден или недоступен.");
         }
+        if (subscriptionRepository.existsByAuthorId(userId)) {
+            subscriptionRepository.deleteByAuthorId(userId);
+        }
+        if (subscriptionRepository.existsBySubscriberId(userId)) {
+            subscriptionRepository.deleteBySubscriberId(userId);
+        }
+
         userRepository.deleteById(userId);
         log.info("Удалён пользователь с id: {}", userId);
+    }
+
+    @Override
+    public UserDto updateUser(Long userId, UserDto userDto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден или недоступен."));
+        String name = userDto.getName();
+        String email = userDto.getEmail();
+        Boolean subscriptionBanned = userDto.getSubscriptionBanned();
+
+        if (name != null) {
+            user.setName(name);
+        }
+        if (email != null) {
+            user.setEmail(email);
+        }
+        if (subscriptionBanned != null) {
+            user.setSubscriptionBanned(subscriptionBanned);
+        }
+
+        UserDto savedUser = userMapper.toUserDto(userRepository.save(user));
+
+        log.info("Изменены параметры пользователя: {}", savedUser);
+        return savedUser;
     }
 }

@@ -15,8 +15,7 @@ import ru.practicum.event.model.Event;
 import ru.practicum.user.mapper.UserMapper;
 import ru.practicum.user.model.User;
 
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING,
-        uses = {UserMapper.class, CategoryMapper.class})
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = {UserMapper.class, CategoryMapper.class})
 public interface EventMapper {
     @Mapping(target = "eventDate", dateFormat = "yyyy-MM-dd HH:mm:ss")
     EventShortDto toEventShortDto(Event event);
